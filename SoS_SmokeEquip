@@ -1,0 +1,72 @@
+scriptName SoS_SmokeEquip extends ObjectReference
+
+;-- Properties --------------------------------------
+armor property Joint_R auto
+armor property Joint_L auto
+armor property Blunt_R auto
+armor property Blunt_L auto
+armor property LongPipe_R auto
+armor property LongPipe_L auto
+
+; Define weapon properties for each item type
+weapon property SoS_Paraphernalia auto 
+
+
+actor property PlayerRef auto
+quest property SmokesOfSkyrim_VRQuest auto
+
+;-- Variables ---------------------------------------
+Bool Equipped
+Int CurrentHand
+
+;-- Functions ---------------------------------------
+
+function OnEquipped(actor akActor)
+    Bool leftHandedMode = utility.GetINIBool("bLeftHandedMode:VRInput")
+    weapon equippedWeapon = PlayerRef.GetEquippedWeapon(leftHandedMode)
+    
+    if equippedWeapon == SoS_Paraphernalia
+        HandleEquippedItem(equippedWeapon, leftHandedMode)
+    endif
+    Equipped = true
+    (SmokesOfSkyrim_VRQuest as SmokesOfSkyrimVRQuest).Hand = CurrentHand
+    (SmokesOfSkyrim_VRQuest as SmokesOfSkyrimVRQuest).JointEquipped = Equipped
+    (SmokesOfSkyrim_VRQuest as SmokesOfSkyrimVRQuest).StartVRTools()
+endFunction
+
+function HandleEquippedItem(weapon equippedWeapon, Bool leftHanded)
+    if equippedWeapon == SoS_Paraphernalia
+        SetFingerRangeAndEquipItem(leftHanded, Joint_R, Joint_L, 0.400000, 0.200000)
+        SetFingerRangeAndEquipItem(leftHanded, Blunt_R, Blunt_L, 0.500000, 0.300000)
+        SetFingerRangeAndEquipItem(leftHanded, LongPipe_R, LongPipe_L, 0.500000, 0.400000)
+    endif
+endFunction
+
+function SetFingerRangeAndEquipItem(Bool leftHanded, armor rightItem, armor leftItem, float rightIndex, float leftIndex)
+    if leftHanded
+        CurrentHand = 2
+        vrik.VrikSetLeftFingerRange(rightIndex, rightIndex, leftIndex, leftIndex, 0.220000, 0.220000, 0.250000, 0.220000, 0.200000, 0.220000)
+        PlayerRef.EquipItem(leftItem as form, true, true)
+    else
+        CurrentHand = 1
+        vrik.VrikSetRightFingerRange(rightIndex, rightIndex, leftIndex, leftIndex, 0.200000, 0.200000, 0.240000, 0.220000, 0.220000, 0.220000)
+        PlayerRef.EquipItem(rightItem as form, true, true)
+    endif
+endFunction
+
+function OnUnEquipped(actor akActor)
+    if CurrentHand == 1
+        vrik.VrikRestoreFingers(false)
+        PlayerRef.RemoveItem(Joint_R as form, 1, true, none)
+        PlayerRef.RemoveItem(Blunt_R as form, 1, true, none)
+        PlayerRef.RemoveItem(LongPipe_R as form, 1, true, none)
+    elseif CurrentHand == 2
+        vrik.VrikRestoreFingers(true)
+        PlayerRef.RemoveItem(Joint_L as form, 1, true, none)
+        PlayerRef.RemoveItem(Blunt_L as form, 1, true, none)
+        PlayerRef.RemoveItem(LongPipe_L as form, 1, true, none)
+    endif
+    Equipped = false
+    (SmokesOfSkyrim_VRQuest as SmokesOfSkyrimVRQuest).JointEquipped = Equipped
+    (SmokesOfSkyrim_VRQuest as SmokesOfSkyrimVRQuest).StopVRTools()
+endFunction
