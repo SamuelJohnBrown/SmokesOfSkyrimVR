@@ -10,7 +10,9 @@ armor property LongPipe_L auto
 
 ; Define weapon properties for each item type
 weapon property SoS_Paraphernalia auto 
-
+weapon property Blunt auto
+weapon property LongPipe auto
+weapon property Joint auto
 
 actor property PlayerRef auto
 quest property SmokesOfSkyrim_VRQuest auto
@@ -27,6 +29,10 @@ function OnEquipped(actor akActor)
     
     if equippedWeapon == SoS_Paraphernalia
         HandleEquippedItem(equippedWeapon, leftHandedMode)
+    elseif equippedWeapon == Blunt
+        HandleEquippedItem(equippedWeapon, leftHandedMode)
+    elseif equippedWeapon == LongPipe
+        HandleEquippedItem(equippedWeapon, leftHandedMode)
     endif
     Equipped = true
     (SmokesOfSkyrim_VRQuest as SmokesOfSkyrimVRQuest).Hand = CurrentHand
@@ -37,7 +43,9 @@ endFunction
 function HandleEquippedItem(weapon equippedWeapon, Bool leftHanded)
     if equippedWeapon == SoS_Paraphernalia
         SetFingerRangeAndEquipItem(leftHanded, Joint_R, Joint_L, 0.400000, 0.200000)
+    elseif equippedWeapon == Blunt
         SetFingerRangeAndEquipItem(leftHanded, Blunt_R, Blunt_L, 0.500000, 0.300000)
+    elseif equippedWeapon == LongPipe
         SetFingerRangeAndEquipItem(leftHanded, LongPipe_R, LongPipe_L, 0.500000, 0.400000)
     endif
 endFunction
@@ -45,11 +53,11 @@ endFunction
 function SetFingerRangeAndEquipItem(Bool leftHanded, armor rightItem, armor leftItem, float rightIndex, float leftIndex)
     if leftHanded
         CurrentHand = 2
-        vrik.VrikSetLeftFingerRange(rightIndex, rightIndex, leftIndex, leftIndex, 0.220000, 0.220000, 0.250000, 0.220000, 0.200000, 0.220000)
+        vrik.VrikSetLeftFingerRange(rightIndex, rightIndex, leftIndex, leftIndex, 0.420000, 0.420000, 0.740000, 0.220000, 0.200000, 0.220000)
         PlayerRef.EquipItem(leftItem as form, true, true)
     else
         CurrentHand = 1
-        vrik.VrikSetRightFingerRange(rightIndex, rightIndex, leftIndex, leftIndex, 0.200000, 0.200000, 0.240000, 0.220000, 0.220000, 0.220000)
+        vrik.VrikSetRightFingerRange(rightIndex, rightIndex, leftIndex, leftIndex, 0.420000, 0.420000, 0.740000, 0.220000, 0.280000, 0.280000)
         PlayerRef.EquipItem(rightItem as form, true, true)
     endif
 endFunction
