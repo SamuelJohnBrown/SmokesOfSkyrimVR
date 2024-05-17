@@ -1,88 +1,99 @@
-Scriptname SmokesOfSkyrimVRQuest extends Quest
+scriptName smokesofskyrimvrquest extends Quest
 
 ;-- Properties --------------------------------------
-Sound Property JointBurning01_SFX Auto
-Sound Property JointBurning02_SFX Auto
-VisualEffect Property SmokeExhaleFX Auto
-Bool Property JointEquipped Auto
-
-Int Property Hand Auto
-GlobalVariable Property InhaleBlock Auto
+Bool property SmokeEquipped auto
+visualeffect property SmokeExhaleFX auto
+imagespacemodifier property CannabisISFX auto
+sound property JointBurning02_SFX auto
+Float property DurationISFX auto
+globalvariable property InhaleBlock auto
+globalvariable property CannabisNoImageSpaceModifier auto
+Int property Hand auto
+sound property JointBurning01_SFX auto
+globalvariable property SharedInhaleCount auto
 
 ;-- Variables ---------------------------------------
-Bool Inhaling
-Float NearDistance
-Bool Clipping
-GlobalVariable SmokingKey
-Int MouthMarker
 Int ClipMarker
+globalvariable SmokingKey
+Bool Inhaling
+Bool Clipping
+Float NearDistance
+Int MouthMarker
 
 ;-- Functions ---------------------------------------
 
-; Function to handle VR overlap events
-Function OnVROverlapEvent(Int overlapEventType, Int objectHandle, Int deviceId)
-    If overlapEventType == 1 && objectHandle == MouthMarker && deviceId == Hand && !Inhaling && JointEquipped
-        Inhaling = True
-        JointEquipped = False
-        Input.TapKey(SmokingKey.GetValue() As Int)
+; Skipped compiler generated GetState
 
-        ; Play a random sound effect
-        If Utility.RandomInt(1, 2) == 1
-            JointBurning01_SFX.Play(Game.GetPlayer() As ObjectReference)
-        Else
-            JointBurning02_SFX.Play(Game.GetPlayer() As ObjectReference)
-        EndIf
+function OnVROverlapEvent(Int overlapEventType, Int objectHandle, Int deviceId)
 
-        Utility.Wait(0.100000)
+	SharedInhaleCount.SetValue(SharedInhaleCount.GetValue() + 1 as Float)
+	if overlapEventType == 1 && objectHandle == MouthMarker && deviceId == Hand && !Inhaling && SmokeEquipped as Bool
+		Inhaling = true
+		SmokeEquipped = false
+		input.TapKey(SmokingKey.GetValue() as Int)
+		if utility.RandomInt(1, 2) == 1
+			JointBurning01_SFX.Play(game.GetPlayer() as objectreference)
+		else
+			JointBurning02_SFX.Play(game.GetPlayer() as objectreference)
+		endIf
+		if Hand == 2
+			vrik.VrikHapticPulse(true, 500, 50)
+			utility.Wait(1.40000)
+		else
+			vrik.VrikHapticPulse(false, 500, 50)
+			utility.Wait(1.40000)
+		endIf
+		utility.Wait(1.00000)
+		SmokeEquipped = true
+		if InhaleBlock.GetValue() as Int == 1
+			SmokeEquipped = false
+		endIf
+	endIf
+	if overlapEventType == 2 && objectHandle == MouthMarker && deviceId == Hand && Inhaling as Bool
+		Inhaling = false
+		SmokeExhaleFX.Play(game.GetPlayer() as objectreference, -1.00000, none)
+		if SharedInhaleCount.GetValue() >= 15 as Float
+			if CannabisNoImageSpaceModifier.GetValue() == 0 as Float
+				CannabisISFX.ApplyCrossFade(1.00000)
+				SharedInhaleCount.SetValue(0 as Float)
+				utility.Wait(DurationISFX)
+				imagespacemodifier.RemoveCrossFade(1.50000)
+			endIf
+		endIf
+	elseIf overlapEventType == 1 && objectHandle == ClipMarker && deviceId == Hand && !Clipping && SmokeEquipped as Bool
+		Clipping = true
+		vrik.VrikSetSetting("nearClipDistance", 5.00000)
+		utility.SetINIFloat("fNearDistance:Display", 5.00000)
+	elseIf overlapEventType == 2 && objectHandle == ClipMarker && deviceId == Hand && Clipping as Bool
+		Clipping = false
+		vrik.VrikSetSetting("nearClipDistance", NearDistance)
+		utility.SetINIFloat("fNearDistance:Display", NearDistance)
+	endIf
+endFunction
 
-        ; Trigger haptic feedback based on which hand is used
-        If Hand == 1
-            Vrik.VrikHapticPulse(False, 20, 40)
-            Utility.Wait(1.40000)
-            Vrik.VrikHapticPulse(False, 20, 10)
-        Else
-            Vrik.VrikHapticPulse(True, 20, 40)
-            Utility.Wait(1.40000)
-            Vrik.VrikHapticPulse(True, 20, 10)
-        EndIf
+function StopVRTools()
 
-        Utility.Wait(2.00000)
-        JointEquipped = True
-        If InhaleBlock.GetValue() As Int == 1
-            JointEquipped = False
-        EndIf
-    ElseIf overlapEventType == 1 && objectHandle == ClipMarker && deviceId == Hand && !Clipping && JointEquipped
-        Clipping = True
-        Vrik.VrikSetSetting("nearClipDistance", 5.00000)
-        Utility.SetINIFloat("fNearDistance:Display", 5.00000)
-    ElseIf overlapEventType == 2 && objectHandle == MouthMarker && deviceId == Hand && Inhaling
-        Inhaling = False
-        SmokeExhaleFX.Play(Game.GetPlayer() As ObjectReference)
-        Utility.Wait(3.00000) ; Ensure the visual effect lasts for 3 seconds
-    ElseIf overlapEventType == 2 && objectHandle == ClipMarker && deviceId == Hand && Clipping && JointEquipped
-        Clipping = False
-        Vrik.VrikSetSetting("nearClipDistance", NearDistance)
-        Utility.SetINIFloat("fNearDistance:Display", NearDistance)
-    EndIf
-EndFunction
+	papyrusvr.DestroyLocalOverlapObject(MouthMarker)
+	papyrusvr.DestroyLocalOverlapObject(ClipMarker)
+	papyrusvr.UnRegisterForVROverlapEvents(game.GetForm(self.GetFormID()))
+	vrik.VrikSetSetting("nearClipDistance", NearDistance)
+	utility.SetINIFloat("fNearDistance:Display", NearDistance)
+endFunction
 
-Function StartVRTools()
-    NearDistance = Utility.GetINIFloat("fNearDistance:Display")
-    Float[] Mposition = PapyrusVR.Vector3(0.000000, 0.0800000, 0.000000)
-    Float[] rotation = PapyrusVR.Quaternion_Zero()
-    Float[] Cposition = PapyrusVR.Vector3(0.000000, 0.000000, 0.000000)
-    MouthMarker = PapyrusVR.RegisterLocalOverlapSphere(0.200000, Mposition, rotation, 0)
-    ClipMarker = PapyrusVR.RegisterLocalOverlapSphere(0.200000, Cposition, rotation, 0)
-    PapyrusVR.RegisterForVROverlapEvents(Game.GetForm(self.GetFormID()))
-    SmokingKey = Game.GetFormFromFile(4808, "Smokes_of_Skyrim.esp") As GlobalVariable
-    Inhaling = False
-    Clipping = False
-EndFunction
+function StartVRTools()
 
-Function StopVRTools()
-    PapyrusVR.DestroyLocalOverlapObject(MouthMarker)
-    PapyrusVR.DestroyLocalOverlapObject(ClipMarker)
-    PapyrusVR.UnRegisterForVROverlapEvents(Game.GetForm(self.GetFormID()))
-    Vrik.VrikSetSetting("nearClipDistance", NearDistance)
-    Utility.SetINIFloat("fNearDistance:Display", NearDistance)
-EndFunction
+	NearDistance = utility.GetINIFloat("fNearDistance:Display")
+	Float[] Mposition = papyrusvr.Vector3(0.000000, 0.0800000, 0.000000)
+	Float[] rotation = papyrusvr.Quaternion_Zero()
+	Float[] Cposition = papyrusvr.Vector3(0.000000, 0.000000, 0.000000)
+	MouthMarker = papyrusvr.RegisterLocalOverlapSphere(0.180000, Mposition, rotation, 0)
+	ClipMarker = papyrusvr.RegisterLocalOverlapSphere(0.220000, Cposition, rotation, 0)
+	papyrusvr.RegisterForVROverlapEvents(game.GetForm(self.GetFormID()))
+	SmokingKey = game.GetFormFromFile(4808, "Smokes_of_Skyrim.esp") as globalvariable
+	Inhaling = false
+	Clipping = false
+	SharedInhaleCount.SetValue(0 as Float)
+	DurationISFX = 30.0000
+endFunction
+
+; Skipped compiler generated GotoState
